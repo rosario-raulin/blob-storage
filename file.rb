@@ -1,8 +1,8 @@
 require_relative 'request'
 require 'rexml/document'
 
-def with_chunks_from_file (path, action, chunksize = $default_chunksize)
-	i = 0
+def with_chunks_from_file (path, action, chunksize)
+	i = 1 
 	File.open(path, "r") { |f|
 		until f.eof?
 			action.call(f.read(chunksize), i)
@@ -39,18 +39,39 @@ def get_chunk (blob, from, size, part, container, use_threads)
 end
 
 def download_blob (blob, use_threads = false, container = $default_container_name)
-	i = 0
+	i = 0 
 	written = 0
 	threads = [] if use_threads
 	REXML::Document.new(get_block_list(blob, container).body).elements.each('BlockList/CommittedBlocks/Block/Size') { |s|
 		size = s.text.to_i
-		x = get_chunk(blob, written, size, i, container, use_threads)
 		i += 1
+		x = get_chunk(blob, written, size, i, container, use_threads)
 		written += size
 		threads << x if use_threads
 	}
 	threads.each { |t|
 		t.join
 	} if use_threads
+	File.open(blob, "w") { |out|
+		(1..i).each { |j|
+			File.open("%s.%0#{$chunk_padding}d" % [blob, j], "r") { |inp|
+				out.write(inp.read)			
+			}
+		}
+	}
+end
+
+def upload_blob (file, blob, chunksize = $default_chunksize, container = $default_container_name)
+	parts = 0
+	with_chunks_from_file(file, lambda { |chunk, i|
+		id = "%0#{$chunk_padding}d" % [i]
+		puts id
+		x = put_block(blob, id, chunk, container)
+		puts x.code
+		puts x.body
+		parts += 1
+	}, chunksize)
+	puts parts
+	puts put_block_list(blob, parts, container).body
 end
 

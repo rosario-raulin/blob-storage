@@ -65,6 +65,7 @@ end
 
 def put_block (name, id, block, container = $default_container_name)
 	uri = $account_uri + container + "/" + name + "?comp=block&blockid=" + URI.escape(Base64.strict_encode64(id))
+	puts uri 
 	make_request(Net::HTTP::Put.new(uri), URI(uri), block)
 end
 
@@ -76,6 +77,7 @@ def put_block_list (name, parts, container = $default_container_name)
 		body += "\t<Latest>#{id}</Latest>\n"
 	}
 	body += "</BlockList>"
+	puts body
 	make_request(Net::HTTP::Put.new(uri), URI(uri), body, "text/xml")
 end
 
