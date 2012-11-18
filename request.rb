@@ -4,15 +4,6 @@ require 'openssl'
 require 'base64'
 require 'uri'
 
-$account_id = "rosariomd"
-$account_key = Base64.decode64("")
-$account_uri = "http://rosariomd.blob.core.windows.net/"
-#$account_uri ="http://localhost:8080/"
-$default_container_name = "foobar"
-
-$chunk_padding = "3"
-$default_chunksize = 512 * 1024
-
 def canonicalized_headers (req)
 	headers = []
 	req.each_key { |k|
@@ -55,7 +46,9 @@ end
 
 def create_container (name = $default_container_name)
 	uri = $account_uri + name + "?restype=container"
-	make_request(Net::HTTP::Put.new(uri), URI(uri))
+	req = Net::HTTP::Put.new(uri)
+	req["x-ms-blob-public-access"] = "container"
+	make_request(req, URI(uri))
 end
 
 def delete_container (name)
@@ -65,7 +58,6 @@ end
 
 def put_block (name, id, block, container = $default_container_name)
 	uri = $account_uri + container + "/" + name + "?comp=block&blockid=" + URI.escape(Base64.strict_encode64(id))
-	puts uri 
 	make_request(Net::HTTP::Put.new(uri), URI(uri), block)
 end
 
@@ -77,7 +69,6 @@ def put_block_list (name, parts, container = $default_container_name)
 		body += "\t<Latest>#{id}</Latest>\n"
 	}
 	body += "</BlockList>"
-	puts body
 	make_request(Net::HTTP::Put.new(uri), URI(uri), body, "text/xml")
 end
 

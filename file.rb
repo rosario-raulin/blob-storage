@@ -43,20 +43,27 @@ def download_blob (blob, use_threads = false, container = $default_container_nam
 	written = 0
 	threads = [] if use_threads
 	REXML::Document.new(get_block_list(blob, container).body).elements.each('BlockList/CommittedBlocks/Block/Size') { |s|
-		size = s.text.to_i
 		i += 1
-		x = get_chunk(blob, written, size, i, container, use_threads)
+		size = s.text.to_i
+		fname = "%s.%0#{$chunk_padding}d" % [blob, i]
+		fsize = File.size?(fname)
+		File.delete(fsize) if fsize && fsize != size
+		if (!fsize || fsize != size) 
+			x = get_chunk(blob, written, size, i, container, use_threads)
+			threads << x if use_threads
+		end
 		written += size
-		threads << x if use_threads
 	}
 	threads.each { |t|
 		t.join
 	} if use_threads
 	File.open(blob, "w") { |out|
 		(1..i).each { |j|
-			File.open("%s.%0#{$chunk_padding}d" % [blob, j], "r") { |inp|
+			file = "%s.%0#{$chunk_padding}d" % [blob, j]
+			File.open(file, "r") { |inp|
 				out.write(inp.read)			
 			}
+			File.delete(file)
 		}
 	}
 end
@@ -65,13 +72,9 @@ def upload_blob (file, blob, chunksize = $default_chunksize, container = $defaul
 	parts = 0
 	with_chunks_from_file(file, lambda { |chunk, i|
 		id = "%0#{$chunk_padding}d" % [i]
-		puts id
-		x = put_block(blob, id, chunk, container)
-		puts x.code
-		puts x.body
+		put_block(blob, id, chunk, container)
 		parts += 1
 	}, chunksize)
-	puts parts
-	puts put_block_list(blob, parts, container).body
+	put_block_list(blob, parts, container)
 end
 

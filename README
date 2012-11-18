@@ -1,1 +1,4 @@
 Fooling around with Azure's blob storage API in Ruby
+
+usage: ./blob.rb (upload|download|container|deleteAll) name [use-threads]
+
