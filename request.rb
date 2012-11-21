@@ -4,6 +4,17 @@ require 'openssl'
 require 'base64'
 require 'uri'
 
+class AzureError < StandardError
+	def initialize (resp)
+		@code = resp.code.to_i
+		@body = resp.body
+	end
+
+	def to_s
+		"Azure produced an error: %d - %s" % [@code, @body]
+	end
+end
+
 def canonicalized_headers (req)
 	headers = []
 	req.each_key { |k|
@@ -40,7 +51,9 @@ def make_request (req, uri, body = nil, content_type = "text/plain")
 	req["Authorization"] = "SharedKeyLite %s:%s" % [$account_id, gen_auth_header(req, uri)]
 
 	Net::HTTP.start(uri.hostname, uri.port) { |c|
-		c.request(req)
+		resp = c.request(req)
+		raise AzureError.new(resp) if not (200..299).include?(resp.code.to_i)
+		resp
 	}
 end
 

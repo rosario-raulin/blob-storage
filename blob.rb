@@ -17,11 +17,15 @@ def main
 					puts "usage: blob.rb (upload|download|container|deleteAll) path [use-threads]"
 	else
 		use_threads = if (ARGV.length == 3) then true else false end
-		case ARGV[0]
-			when "upload" then upload_blob(ARGV[1], ARGV[1])
-			when "download" then download_blob(ARGV[1], use_threads)
-			when "container" then create_container(ARGV[1])
-			when "deleteAll" then delete_container(ARGV[1])
+		begin
+			case ARGV[0]
+				when "upload" then upload_blob(ARGV[1], ARGV[1])
+				when "download" then download_blob(ARGV[1], use_threads)
+				when "container" then create_container(ARGV[1])
+				when "deleteAll" then delete_container(ARGV[1])
+			end
+			rescue AzureError => e
+				puts e
 		end
 	end
 end
